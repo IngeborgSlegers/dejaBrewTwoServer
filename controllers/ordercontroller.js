@@ -1,6 +1,5 @@
 const router = require('express').Router();
-const Order = require('../db').import('../models/order');
-const Tea = require('../db').import('../models/tea');
+const {Order, Tea} = require('../models/indexModel');
 
 
 /* CREATE -- TEA ORDER */
@@ -51,8 +50,6 @@ router.put('/editcart/:id', (req, res) => {
 /* DELETE -- TEA ORDER */
 
 router.delete('/deletecart/:id', (req, res) => {
-  console.log('req.user.id => ', req.user.id)
-  console.log('req.params.id => ', req.params.id)
   Order.destroy({ where: {id: req.params.id, userId: req.user.id }})
     .then(order => res.status(200).json(order))
     .catch(err => res.status(500).json({ error: err}))

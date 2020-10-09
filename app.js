@@ -1,26 +1,29 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const app = express();
-const sequelize = require('./db');
-const bodyParser = require('body-parser');
-const tea = require('./controllers/teacontroller');
-const user = require('./controllers/usercontroller');
-const order = require('./controllers/ordercontroller');
-// const validateSession = require('./middleware/validate-session');
+const Express = require("express");
+const app = Express();
+const db = require("./db");
 
-sequelize.sync();
-// sequelize.sync({force: true}); reset the tables
+const controllers = require("./controllers/indexController");
 
-app.use(require('./middleware/headers'));
+const middleware = require("./middleware/indexMiddleware");
 
-app.use(bodyParser.json());
+app.use(require("./middleware/headers"));
 
-app.use('/user', user);
-app.use('/tea', tea);
-app.use(require('./middleware/validate-session'));
-app.use('/order', order);
+app.use(Express.json());
 
-app.listen(3000, function() {
-  console.log(`App is listening on ${process.env.PORT}.`)
-});
+app.use("/user", controllers.user);
+app.use("/tea", middleware.validateAccess, controllers.tea);
+
+app.use("/order", middleware.validateSession, controllers.order);
+
+db.authenticate()
+  .then(() => db.sync())
+  .then(() => {
+    app.listen(process.env.PORT, () => {
+      console.log(`[Server]: App is listening on ${process.env.PORT}.`);
+    });
+  })
+  .catch((err) => {
+    console.log(`[Server]: Server crashed. Error = ${err}`);
+  });
