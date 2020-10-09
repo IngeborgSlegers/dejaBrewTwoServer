@@ -1,51 +1,99 @@
-const router = require('express').Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const sequelize = require('../db');
-const User = sequelize.import('../models/user');
+const router = require("express").Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { User } = require("../models/indexModel");
+const {
+  validateSession,
+  validateAccess,
+} = require("../middleware/indexMiddleware");
+const { UniqueConstraintError } = require("sequelize/types");
 
-router.post('/signup', (req, res) => {
-  User.create({
-    firstName: req.body.user.firstName,
-    lastName: req.body.user.lastName,
-    email: req.body.user.email,
-    password: bcrypt.hashSync(req.body.user.password, 10)
-  })
-  .then(
-    signupSuccess = (user) => {
-      let token = jwt.sign({ id: user.id }, 'jwt_secret', { expiresIn: 60 * 60 * 24 });
-      res.status(200).json({
-        user: user,
-        token: token,
-        message: 'User created'
-      })
-    },
-    signupFail = (err) => {
-      res.status(500).send(err.message)
-    }
-  )
-})
+router.post("/register", async (req, res) => {
+  let { firstName, lastName, email, password, role } = req.body.user;
+  try {
+    let registerUser = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: bcrypt.hashSync(password, 13),
+      role,
+    });
 
-router.post('/signin', (req, res) => {
-  User.findOne({ where: { email: req.body.user.email } })
-  .then(user => {
-    if(user) {
-      bcrypt.compare(req.body.user.password, user.password, (err, matches) => {
-        if(matches) {
-          let token = jwt.sign({ id: user.id }, 'jwt_secret', { expiresIn: 60 * 60 * 24 })
-          res.json({
-            user: user,
-            token: token,
-            message: 'User logged in'
-          });
-        } else {
-          res.status(502).send({ error: 'Passwords do not match' })
-        }
-      })
+    let token = jwt.sign(
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: 60 * 60 * 24,
+      }
+    );
+    res.status(200).json({
+      user: registerUser,
+      token: token,
+      message: "User registration success.",
+    });
+  } catch (err) {
+    if (err instanceof UniqueConstraintError) {
+      res.status(409).json({
+        message: "Email already in use.",
+      });
     } else {
-      res.status(403).send({ error: 'User not found'})
+      res.status(500).json({
+        messagge: "Failed to register user.",
+      });
     }
-  })
-})
+  }
+});
+
+router.post("/signin", async (req, res) => {
+  let { email, password } = req.body.user;
+  try {
+    let loginUser = await User.findOne({
+      where: { email },
+    });
+    if (loginUser && (await bcrypt.compare(password, loginUser.password))) {
+      const token = jwt.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: 60 * 60 * 24,
+        }
+      );
+      res.status(200).json({
+        user: loginUser,
+        token: token,
+        message: "User login success",
+      });
+    } else {
+      res.status(401).json({ message: "Login Failed" });
+    }
+  } catch (err) {
+    res.status(500).send({ error: "Error logging in" });
+  }
+});
+
+router.delete("/:id", validateSession, validateAccess, (req, res) => {
+  console.log("delete request", req);
+  User.findOne({ where: { id: req.params.id } })
+    .then((user) => {
+      User.destroy({ where: { id: user.id } }).then((deleteSuccess) => {
+        res.status(200).json({
+          deleteSuccess: deleteSuccess,
+          message: `User ${user.firstName} ${user.lastName} successfully deleted`,
+        });
+      });
+      // .catch((err) => {
+      //   res.status(500).json({
+      //     err: err,
+      //     message: "Unable to delete user",
+      //   });
+      // })
+    })
+    .catch((err) =>
+      res.status(500).json({
+        err: err,
+        message: "Unable to locate user",
+      })
+    );
+});
 
 module.exports = router;
