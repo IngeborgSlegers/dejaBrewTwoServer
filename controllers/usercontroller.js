@@ -6,7 +6,7 @@ const {
   validateSession,
   validateAccess,
 } = require("../middleware/indexMiddleware");
-const { UniqueConstraintError } = require("sequelize/types");
+const { UniqueConstraintError } = require("sequelize/lib/errors");
 
 router.post("/register", async (req, res) => {
   let { firstName, lastName, email, password, role } = req.body.user;
