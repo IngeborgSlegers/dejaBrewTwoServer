@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     const teas = await Tea.findAll();
     if (teas) {
       res.status(200).json({
-        data: teas,
+        teas: teas,
         message: "Data retrieval success.",
       });
     } else {
@@ -128,6 +128,33 @@ router
       });
     }
   });
+
+  /************************************************
+ * READ, by :type -- TEA INFO *
+ ***********************************************/
+router.get("/type/:type", async (req, res) => {
+  try {
+    const teaType = req.params.type;
+    const locatedTea = await Tea.findAll({
+      where: {
+        type: teaType,
+      },
+    });
+    if (locatedTea) {
+      res.status(200).json({
+        teas: locatedTea,
+      });
+    } else {
+      res.status(404).json({
+        message: "Tea not found.",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({
+      error: "Failed to interact with teas.",
+    });
+  }
+})
 
 /************************************
  * UPDATE -- TEA INFO - deprecated *
