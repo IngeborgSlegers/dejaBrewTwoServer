@@ -22,6 +22,12 @@ const User = db.define("user", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  phoneNumber: {
+    type:DataTypes.STRING,
+    allowNull: true,
+    min: 10,
+    max: 10
+  },
   role: {
     type: DataTypes.ENUM,
     values: ["user", "admin", "banned"],

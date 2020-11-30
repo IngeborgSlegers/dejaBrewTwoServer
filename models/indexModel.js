@@ -1,7 +1,7 @@
 const User = require('./user');
 const Tea = require('./tea');
 const Order = require('./order');
-const Profile = require('./profile');
+const Address = require('./address');
 
 User.hasMany(Order);
 Order.belongsTo(User);
@@ -9,10 +9,10 @@ Order.belongsTo(User);
 Tea.hasMany(Order);
 Order.belongsTo(Tea);
 
-User.hasOne(Profile);
-Profile.belongsTo(User);
+User.hasMany(Address);
+Address.belongsTo(User);
 
-Profile.hasMany(Order);
-Order.belongsTo(Profile);
+User.hasMany(Order);
+Order.belongsTo(User);
 
-module.exports = {User, Tea, Order}
+module.exports = {User, Tea, Order, Address}

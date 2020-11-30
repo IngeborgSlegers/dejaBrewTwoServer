@@ -5,7 +5,7 @@ const { User } = require("../models/indexModel");
 const {
   validateSession,
   validateAccess,
-} = require("../middleware/indexMiddleware");
+} = require("../middleware");
 const { UniqueConstraintError } = require("sequelize/lib/errors");
 
 router.post("/register", async (req, res) => {
@@ -20,7 +20,7 @@ router.post("/register", async (req, res) => {
     });
 
     let token = jwt.sign(
-      { id: user.id, role: user.role },
+      { id: registerUser.id, role: registerUser.role },
       process.env.JWT_SECRET,
       {
         expiresIn: 60 * 60 * 24,
@@ -32,6 +32,7 @@ router.post("/register", async (req, res) => {
       message: "User registration success.",
     });
   } catch (err) {
+    console.log(err)
     if (err instanceof UniqueConstraintError) {
       res.status(409).json({
         message: "Email already in use.",
@@ -50,9 +51,9 @@ router.post("/signin", async (req, res) => {
     let loginUser = await User.findOne({
       where: { email },
     });
-    if (loginUser && (await bcrypt.compare(password, loginUser.password))) {
+    if (loginUser && await bcrypt.compare(password, loginUser.password)) {
       const token = jwt.sign(
-        { id: user.id, role: user.role },
+        { id: loginUser.id, role: loginUser.role },
         process.env.JWT_SECRET,
         {
           expiresIn: 60 * 60 * 24,
@@ -64,7 +65,7 @@ router.post("/signin", async (req, res) => {
         message: "User login success",
       });
     } else {
-      res.status(401).json({ message: "Login Failed" });
+      res.status(401).json({ error: "Login Failed" });
     }
   } catch (err) {
     res.status(500).send({ error: "Error logging in" });
