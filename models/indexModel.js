@@ -12,7 +12,7 @@ Order.belongsTo(Tea);
 User.hasMany(Address);
 Address.belongsTo(User);
 
-User.hasMany(Order);
-Order.belongsTo(User);
+// User.hasMany(Order);
+// Order.belongsTo(User);
 
 module.exports = {User, Tea, Order, Address}

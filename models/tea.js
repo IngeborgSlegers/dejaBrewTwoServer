@@ -26,6 +26,11 @@ const Tea = db.define("tea", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  quantitea: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
+  }
 });
 
 module.exports = Tea;

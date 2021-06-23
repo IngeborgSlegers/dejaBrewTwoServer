@@ -12,23 +12,23 @@ router.post("/newteas", validateAccess, async (req, res) => {
   try {
     const response = await fetch("https://tea-api-vic-lo.herokuapp.com/tea");
     const teas = await response.json();
-    console.log(teas instanceof Array);
     for (let tea of teas) {
-      Tea.create({
-        name: tea.name,
-        type: "black",
-        description: tea.description,
-        temp: tea.temperature,
-        steepTime: tea.brew_time,
-        price: 20,
-      });
-      // res.status(200).json({
-      //   allTeas: newTea,
-      //   message: "all good!",
-      // });
-      // return newTea;
+      let FoundTea = await Tea.findOne({ where: { name: tea.name } });
+      if (FoundTea) {
+        let newQuantitea = tea.quantitea === undefined ? 1 : tea.quantitea;
+        let calculatedTea = FoundTea.quantitea + newQuantitea;
+        FoundTea.update({ quantitea: calculatedTea });
+      } else {
+        Tea.create({
+          name: tea.name,
+          type: "black",
+          description: tea.description,
+          temp: tea.temperature,
+          steepTime: tea.brew_time,
+          price: 20,
+        });
+      }
     }
-    // const returnedTea = newTea;
     res.status(200).json({
       allTeas: teas,
       message: "all good!",
@@ -42,22 +42,39 @@ router.post("/newteas", validateAccess, async (req, res) => {
 
 router.post("/new", validateAccess, async (req, res) => {
   try {
-    const { name, type, description, temp, steepTime, price } = req.body.tea;
-    let newTea = await Tea.create({
+    const {
       name,
       type,
       description,
       temp,
       steepTime,
       price,
-    });
-    res.json({
-      message: "Tea Created",
-      tea: newTea,
-    });
+      quantitea,
+    } = req.body.tea;
+    let FoundTea = await Tea.findOne({ where: { name: name } });
+    if (FoundTea) {
+      let newQuantitea = quantitea === undefined ? 1 : quantitea;
+      let calculatedTea = FoundTea.quantitea + newQuantitea;
+      FoundTea.update({ quantitea: calculatedTea });
+      res.status(200).json({ message: "Quantity updated!" });
+    } else {
+      let newTea = await Tea.create({
+        name,
+        type,
+        description,
+        temp,
+        steepTime,
+        price,
+      });
+      res.status(200).json({
+        message: "Tea Created",
+        tea: newTea,
+      });
+    }
   } catch (err) {
     res.status(500).json({
       error: "failed",
+      err: err,
     });
   }
 });

@@ -24,7 +24,6 @@ const Address = db.define("address", {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
-      max: 10,
       min: 5
     }
   },

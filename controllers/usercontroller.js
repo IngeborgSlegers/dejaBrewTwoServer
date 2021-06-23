@@ -1,15 +1,19 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models/indexModel");
-const {
-  validateSession,
-  validateAccess,
-} = require("../middleware");
+const { User, Address } = require("../models/indexModel");
+const { validateSession, validateAccess } = require("../middleware");
 const { UniqueConstraintError } = require("sequelize/lib/errors");
 
 router.post("/register", async (req, res) => {
-  let { firstName, lastName, email, password, role } = req.body.user;
+  let {
+    firstName,
+    lastName,
+    email,
+    password,
+    role,
+    phoneNumber,
+  } = req.body.user;
   try {
     let registerUser = await User.create({
       firstName,
@@ -17,6 +21,7 @@ router.post("/register", async (req, res) => {
       email,
       password: bcrypt.hashSync(password, 13),
       role,
+      phoneNumber,
     });
 
     let token = jwt.sign(
@@ -32,7 +37,7 @@ router.post("/register", async (req, res) => {
       message: "User registration success.",
     });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     if (err instanceof UniqueConstraintError) {
       res.status(409).json({
         message: "Email already in use.",
@@ -51,7 +56,7 @@ router.post("/signin", async (req, res) => {
     let loginUser = await User.findOne({
       where: { email },
     });
-    if (loginUser && await bcrypt.compare(password, loginUser.password)) {
+    if (loginUser && (await bcrypt.compare(password, loginUser.password))) {
       const token = jwt.sign(
         { id: loginUser.id, role: loginUser.role },
         process.env.JWT_SECRET,
@@ -72,29 +77,52 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-router.delete("/:id", validateSession, validateAccess, (req, res) => {
-  console.log("delete request", req);
-  User.findOne({ where: { id: req.params.id } })
-    .then((user) => {
-      User.destroy({ where: { id: user.id } }).then((deleteSuccess) => {
-        res.status(200).json({
-          deleteSuccess: deleteSuccess,
-          message: `User ${user.firstName} ${user.lastName} successfully deleted`,
-        });
-      });
-      // .catch((err) => {
-      //   res.status(500).json({
-      //     err: err,
-      //     message: "Unable to delete user",
-      //   });
-      // })
-    })
-    .catch((err) =>
-      res.status(500).json({
-        err: err,
-        message: "Unable to locate user",
-      })
-    );
+router.delete("/:id", validateSession, async (req, res) => {
+  try {
+    const locatedUser = await User.findOne({ where: { id: req.params.id } });
+    await User.destroy({ where: { id: locatedUser.id } });
+    res.status(200).json({
+      message: "User successfully deleted",
+    });
+  } catch (error) {
+    res.status(500).json({
+      err: err,
+      message: "Unable to locate user",
+    });
+  }
 });
+
+// Admin routes
+router.get("/admin/allusers", validateAccess, async (req, res) => {
+  try {
+    const allUsers = await User.findAll({
+      include: [
+        {
+          model: Address,
+        },
+      ],
+    });
+    res.status(200).json({ users: allUsers });
+  } catch (error) {
+    res.status(500).json({
+      err: error,
+      message: "Unable to locate users",
+    });
+  }
+});
+
+router.delete("/admin/:userId", validateAccess, async (req, res) => {
+  try {
+    const {userId} = req.params;
+    const locatedUser = await User.findOne({where: {userId}});
+    await User.destroy({where: {id: locatedUser.id}});
+    res.status(200).json({message: `User #${locatedUser.id} successfully deleted!`})
+  } catch (error) {
+    res.status(500).json({
+      err: error,
+      message: "Unable to locate users",
+    });
+  }
+})
 
 module.exports = router;
